@@ -19,8 +19,9 @@ package io.github.debop.failsafekotlin
 import mu.KLogging
 import net.jodah.failsafe.Failsafe
 import net.jodah.failsafe.RetryPolicy
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.amshove.kluent.shouldBeInstanceOf
+import org.amshove.kluent.shouldEqual
+import org.amshove.kluent.shouldEqualTo
 import org.junit.jupiter.api.Test
 
 class FailsafeExecutorExtensionsTest {
@@ -33,7 +34,7 @@ class FailsafeExecutorExtensionsTest {
 
         val result = Failsafe.with(retry).getChecked { "failsafe" }
 
-        assertEquals("failsafe", result)
+        result shouldEqual "failsafe"
     }
 
     @Test
@@ -51,8 +52,7 @@ class FailsafeExecutorExtensionsTest {
                 "Success"
             }
         }
-
-        assertEquals("Success", result)
+        result shouldEqual "Success"
     }
 
     @Test
@@ -70,7 +70,7 @@ class FailsafeExecutorExtensionsTest {
             }
         }
 
-        assertTrue(result.isFailure)
-        assertTrue { result.exceptionOrNull() is RuntimeException }
+        result.isFailure shouldEqualTo true
+        result.exceptionOrNull() shouldBeInstanceOf RuntimeException::class
     }
 }
