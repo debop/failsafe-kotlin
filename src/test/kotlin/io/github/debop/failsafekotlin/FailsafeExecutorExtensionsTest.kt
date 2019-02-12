@@ -16,17 +16,16 @@
 
 package io.github.debop.failsafekotlin
 
+import mu.KLogging
 import net.jodah.failsafe.Failsafe
 import net.jodah.failsafe.RetryPolicy
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
-/**
- * FailsafeExecutorExtensionsTest
- * @author debop
- * @since 2019-02-11
- */
 class FailsafeExecutorExtensionsTest {
+
+    companion object : KLogging()
 
     @Test
     fun `get with retry`() {
@@ -54,5 +53,24 @@ class FailsafeExecutorExtensionsTest {
         }
 
         assertEquals("Success", result)
+    }
+
+    @Test
+    fun `failsafe retry with Result`() {
+        val retry = RetryPolicy<String>()
+            .withMaxRetries(3)
+            .onFailedAttempt { evt ->
+                println("failure message=${evt.lastFailure?.message}")
+            }
+
+        val result = Failsafe.with(retry).runCatching {
+            get<String> { context ->
+                logger.debug { "attempt count=${context.attemptCount}" }
+                throw RuntimeException("Boom!")
+            }
+        }
+
+        assertTrue(result.isFailure)
+        assertTrue { result.exceptionOrNull() is RuntimeException }
     }
 }
