@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016. Sunghyouk Bae <sunghyouk.bae@gmail.com>
+ * Copyright (c) 2019. Sunghyouk Bae <sunghyouk.bae@gmail.com>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,7 +15,9 @@
 
 package io.github.debop.failsafekotlin
 
+import net.jodah.failsafe.ExecutionContext
 import net.jodah.failsafe.RetryPolicy
+import java.time.Duration
 import kotlin.reflect.KClass
 
 
@@ -26,6 +28,10 @@ fun <R> RetryPolicy<R>.isAbortable(result: Result<R>): Boolean =
 @SinceKotlin("1.3")
 fun <R> RetryPolicy<R>.canApplyDelayFn(result: Result<R>): Boolean =
     canApplyDelayFn(result.getOrNull(), result.exceptionOrNull())
+
+fun <R, F : Throwable> RetryPolicy<R>.withDelayOn(failure: KClass<F>, delayFn: (R, F, ExecutionContext) -> Duration): RetryPolicy<R> =
+    withDelayOn({ result, failure, context -> delayFn.invoke(result, failure, context) },
+                failure.java)
 
 fun <R> RetryPolicy<R>.abortOn(clazz: KClass<out Throwable>): RetryPolicy<R> =
     abortOn(clazz.java)
