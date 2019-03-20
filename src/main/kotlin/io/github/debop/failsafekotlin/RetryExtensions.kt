@@ -17,7 +17,12 @@ package io.github.debop.failsafekotlin
 
 import net.jodah.failsafe.ExecutionContext
 import net.jodah.failsafe.RetryPolicy
+import net.jodah.failsafe.event.ExecutionAttemptedEvent
+import net.jodah.failsafe.event.ExecutionCompletedEvent
+import net.jodah.failsafe.function.CheckedConsumer
 import java.time.Duration
+import java.util.function.BiPredicate
+import java.util.function.Predicate
 import kotlin.reflect.KClass
 
 
@@ -29,15 +34,54 @@ fun <R> RetryPolicy<R>.isAbortable(result: Result<R>): Boolean =
 fun <R> RetryPolicy<R>.canApplyDelayFn(result: Result<R>): Boolean =
     canApplyDelayFn(result.getOrNull(), result.exceptionOrNull())
 
-fun <R, F : Throwable> RetryPolicy<R>.withDelayOn(failure: KClass<F>, delayFn: (R, F, ExecutionContext) -> Duration): RetryPolicy<R> =
+fun <R, F : Throwable> RetryPolicy<R>.withDelayOn(failureKlass: KClass<F>,
+                                                  delayFn: (R, F, ExecutionContext) -> Duration): RetryPolicy<R> =
     withDelayOn({ result, failure, context -> delayFn.invoke(result, failure, context) },
-                failure.java)
+                failureKlass.java)
 
-fun <R> RetryPolicy<R>.abortOn(clazz: KClass<out Throwable>): RetryPolicy<R> =
-    abortOn(clazz.java)
+fun <R> RetryPolicy<R>.abortOn(klass: KClass<out Throwable>): RetryPolicy<R> =
+    abortOn(klass.java)
 
-fun <R> RetryPolicy<R>.abortOn(vararg clazzs: KClass<out Throwable>): RetryPolicy<R> =
-    abortOn(clazzs.map { it.java })
+fun <R> RetryPolicy<R>.abortOn(vararg klasses: KClass<out Throwable>): RetryPolicy<R> =
+    abortOn(klasses.map { it.java })
 
-fun <R> RetryPolicy<R>.abortOn(clazzs: Iterable<KClass<out Throwable>>): RetryPolicy<R> =
-    abortOn(clazzs.map { it.java })
+fun <R> RetryPolicy<R>.abortOn(klasses: Iterable<KClass<out Throwable>>): RetryPolicy<R> =
+    abortOn(klasses.map { it.java })
+
+fun <R> RetryPolicy<R>.abortOn(failurePredicate: (Throwable) -> Boolean): RetryPolicy<R> =
+    abortOn(Predicate(failurePredicate))
+
+fun <R> RetryPolicy<R>.handle(failure: KClass<out Exception>): RetryPolicy<R> = handle(failure.java)
+
+fun <R> RetryPolicy<R>.handle(vararg failures: KClass<out Exception>): RetryPolicy<R> =
+    handle(failures.map { it.java })
+
+fun <R> RetryPolicy<R>.handle(failures: Iterable<KClass<out Exception>>): RetryPolicy<R> =
+    handle(failures.map { it.java })
+
+fun <R> RetryPolicy<R>.handleIf(failurePredicate: (Throwable) -> Boolean): RetryPolicy<R> =
+    handleIf(Predicate(failurePredicate))
+
+fun <R> RetryPolicy<R>.handleIf(resultPredicate: (R, Throwable) -> Boolean): RetryPolicy<R> =
+    handleIf(BiPredicate(resultPredicate))
+
+fun <R> RetryPolicy<R>.handleResultIf(resultPredicate: (R) -> Boolean): RetryPolicy<R> =
+    handleResultIf(Predicate(resultPredicate))
+
+fun <R> RetryPolicy<R>.onAbort(listener: (ExecutionCompletedEvent<R>) -> Unit): RetryPolicy<R> =
+    this.onAbort(CheckedConsumer(listener))
+
+fun <R> RetryPolicy<R>.onFailedAttempt(listener: (ExecutionAttemptedEvent<R>) -> Unit): RetryPolicy<R> =
+    this.onFailedAttempt(CheckedConsumer(listener))
+
+fun <R> RetryPolicy<R>.onRetriesExceeded(listener: (ExecutionCompletedEvent<R>) -> Unit): RetryPolicy<R> =
+    this.onRetriesExceeded(CheckedConsumer(listener))
+
+fun <R> RetryPolicy<R>.onRetry(listener: (ExecutionAttemptedEvent<R>) -> Unit): RetryPolicy<R> =
+    this.onRetry(CheckedConsumer(listener))
+
+fun <R> RetryPolicy<R>.onFailure(listener: (ExecutionCompletedEvent<R>) -> Unit): RetryPolicy<R> =
+    this.onFailure(CheckedConsumer(listener))
+
+fun <R> RetryPolicy<R>.onSuccess(listener: (ExecutionCompletedEvent<R>) -> Unit): RetryPolicy<R> =
+    this.onSuccess(CheckedConsumer(listener))

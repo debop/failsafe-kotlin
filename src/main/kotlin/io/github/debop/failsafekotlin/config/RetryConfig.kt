@@ -17,25 +17,29 @@ package io.github.debop.failsafekotlin.config
 
 import java.io.Serializable
 import java.util.concurrent.TimeUnit
+import java.util.function.Predicate
 
 /**
  * RetryConfig
  * @author debop
  * @since 2019-02-17
  */
-class RetryProperties : Serializable {
+data class RetryConfig @JvmOverloads constructor(val maxRetries: Int = 3,
+                                                 val delay: Long? = null,
+                                                 val maxDelay: Long? = null,
+                                                 val dealyUnit: TimeUnit = TimeUnit.MILLISECONDS,
+                                                 val backoffDelay: Long? = 1000,
+                                                 val backoffMaxDelay: Long? = 10_000,
+                                                 var backoffTimeUnit: TimeUnit = TimeUnit.MILLISECONDS,
+                                                 val backoffFactor: Double? = 2.0) : Serializable {
 
-    var maxRetries: Int = 3
-    var maxAttempts: Int = 4
+    companion object {
+        val DEFAULT: RetryConfig = RetryConfig()
 
-    var delay: Long? = null
-    var maxDelay: Long? = null
-    var delayUnit: TimeUnit = TimeUnit.MILLISECONDS
 
-    var backoffDelay: Long? = 1000
-    var backoffMaxDelay: Long? = 10_000
-    var backoffTimeUnit: TimeUnit = TimeUnit.MILLISECONDS
-    var backoffFactor: Double? = 2.0
+    }
 
-    var abortOnClass: String? = null
+    var abortOnClass: Class<*>? = null
+    var abortIf: Predicate<*>? = null
+
 }
