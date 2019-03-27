@@ -25,7 +25,7 @@ import kotlin.reflect.KClass
  * @since 2019-03-20
  */
 
-fun <R> CircuitBreaker<R>.run(body: () -> Unit) {
+fun <R> CircuitBreaker<R>.get(body: () -> Unit) {
     if (allowsExecution()) {
         try {
             preExecute()

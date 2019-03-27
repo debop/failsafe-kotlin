@@ -25,7 +25,7 @@ import net.jodah.failsafe.function.ContextualSupplier
 import java.util.concurrent.CompletableFuture
 
 
-fun <R, T : R> FailsafeExecutor<R>.get(supplier: () -> T): T =
+fun <R, T : R> FailsafeExecutor<R>.getChecked(supplier: () -> T): T =
     get(CheckedSupplier(supplier))
 
 fun <R, T : R> FailsafeExecutor<R>.get(supplier: (ExecutionContext) -> T): T =
@@ -34,10 +34,10 @@ fun <R, T : R> FailsafeExecutor<R>.get(supplier: (ExecutionContext) -> T): T =
 fun <R, T : R> FailsafeExecutor<R>.getAsync(supplier: () -> T): CompletableFuture<T> =
     getAsync(CheckedSupplier(supplier))
 
-fun <R, F : CompletableFuture<R>> FailsafeExecutor<R>.getStageAsync(supplier: () -> F): CompletableFuture<R> =
+fun <R, F : R> FailsafeExecutor<R>.getStageAsync(supplier: () -> CompletableFuture<R>): CompletableFuture<R> =
     getStageAsync(CheckedSupplier(supplier))
 
-fun <R> FailsafeExecutor<R>.run(runnable: () -> Unit) =
+fun <R> FailsafeExecutor<R>.runChecked(runnable: () -> Unit) =
     run(CheckedRunnable(runnable))
 
 fun <R> FailsafeExecutor<R>.run(runnable: (ExecutionContext) -> Unit): Unit =
