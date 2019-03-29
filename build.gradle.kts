@@ -71,3 +71,14 @@ dependencies {
 
     testImplementation("org.amshove.kluent:kluent:1.47")
 }
+
+tasks.withType<Test> {
+    useJUnitPlatform()
+
+    testLogging {
+        events("FAILED")
+    }
+
+    maxParallelForks = Runtime.getRuntime().availableProcessors()
+    setForkEvery(1L)
+}
