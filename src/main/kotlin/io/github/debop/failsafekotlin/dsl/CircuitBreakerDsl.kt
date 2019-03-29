@@ -9,12 +9,13 @@ import java.time.Duration
  * @author debop
  * @since 19. 3. 29
  */
+@FailsafeBuilderDsl
 class CircuitBreakerDsl<R> : AbstractPolicyDsl<R>() {
 
     object Default {
         @JvmField val delay: Duration = Duration.ofSeconds(60)
-        @JvmField val failureThreshold: Int = 5
-        @JvmField val successThreshold: Int = 3
+        const val failureThreshold: Int = 5
+        const val successThreshold: Int = 3
     }
 
     var delay: Duration = Default.delay
