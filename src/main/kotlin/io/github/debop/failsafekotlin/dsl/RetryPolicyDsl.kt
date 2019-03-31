@@ -1,9 +1,12 @@
 package io.github.debop.failsafekotlin.dsl
 
+import io.github.debop.failsafekotlin.event.ExecutionAttemptedEventHandler
+import io.github.debop.failsafekotlin.event.ExecutionCompletedEventHandler
 import net.jodah.failsafe.RetryPolicy
 import net.jodah.failsafe.event.ExecutionAttemptedEvent
 import net.jodah.failsafe.event.ExecutionCompletedEvent
 import java.time.Duration
+
 
 /**
  * RetryPolicyDsl
@@ -40,7 +43,15 @@ class RetryPolicyDsl<R> : AbstractPolicyDsl<R>() {
     var onFailure: ((ExecutionCompletedEvent<R>) -> Unit)? = null
     var onSuccess: ((ExecutionCompletedEvent<R>) -> Unit)? = null
 
-    val onAbortHandlers = mutableListOf<(ExecutionCompletedEvent<R>) -> Unit>()
+    val handleIfHandlers = mutableListOf<(R, Throwable) -> Boolean>()
+
+
+    val onAbortHandlers = mutableListOf<ExecutionCompletedEventHandler<R>>()
+    val onFailedAttemptHandlers = mutableListOf<ExecutionAttemptedEventHandler<R>>()
+    val onRetriesExceededHandlers = mutableListOf<ExecutionCompletedEventHandler<R>>()
+    val onRetryHandlers = mutableListOf<ExecutionAttemptedEventHandler<R>>()
+    val onFailureHandlers = mutableListOf<ExecutionCompletedEventHandler<R>>()
+    val onSuccessHandlers = mutableListOf<ExecutionCompletedEventHandler<R>>()
 
 
     internal fun build(): RetryPolicy<R> {
@@ -55,6 +66,8 @@ class RetryPolicyDsl<R> : AbstractPolicyDsl<R>() {
         handle?.let { retry.handle(handle) }
         handleIf?.let { retry.handleIf(it) }
 
+        handleIfHandlers.forEach { retry.handleIf(it) }
+
         handleResult?.let { retry.handleResult(it) }
         handleResultIf?.let { retry.handleResultIf(it) }
 
@@ -65,9 +78,13 @@ class RetryPolicyDsl<R> : AbstractPolicyDsl<R>() {
         onFailure?.let { retry.onFailure(it) }
         onSuccess?.let { retry.onSuccess(it) }
 
-        onAbortHandlers.forEach {
-            retry.onAbort(it)
-        }
+
+        onAbortHandlers.forEach { retry.onAbort(it) }
+        onFailedAttemptHandlers.forEach { retry.onFailedAttempt(it) }
+        onRetriesExceededHandlers.forEach { retry.onRetriesExceeded(it) }
+        onRetryHandlers.forEach { retry.onRetry(it) }
+        onFailureHandlers.forEach { retry.onFailure(it) }
+        onSuccessHandlers.forEach { retry.onSuccess(it) }
 
         return retry
     }
@@ -88,6 +105,32 @@ fun <R> retry(setup: RetryPolicyDsl<R>.() -> Unit): RetryPolicy<R> {
     return dsl.build()
 }
 
-fun <R> RetryPolicyDsl<R>.onAbort(handler: (ExecutionCompletedEvent<R>) -> Unit): RetryPolicyDsl<R> = apply {
-    onAbortHandlers.add(handler)
-}
+fun <R> RetryPolicyDsl<R>.onAbort(handler: ExecutionCompletedEventHandler<R>): RetryPolicyDsl<R> =
+    apply {
+        onAbortHandlers.add(handler)
+    }
+
+fun <R> RetryPolicyDsl<R>.onFailedAttempt(handler: ExecutionAttemptedEventHandler<R>): RetryPolicyDsl<R> =
+    apply {
+        onFailedAttemptHandlers.add(handler)
+    }
+
+fun <R> RetryPolicyDsl<R>.onRetriesExceeded(handler: ExecutionCompletedEventHandler<R>): RetryPolicyDsl<R> =
+    apply {
+        onRetriesExceededHandlers.add(handler)
+    }
+
+fun <R> RetryPolicyDsl<R>.onRetry(handler: ExecutionAttemptedEventHandler<R>): RetryPolicyDsl<R> =
+    apply {
+        onRetryHandlers.add(handler)
+    }
+
+fun <R> RetryPolicyDsl<R>.onFailure(handler: ExecutionCompletedEventHandler<R>): RetryPolicyDsl<R> =
+    apply {
+        onFailureHandlers.add(handler)
+    }
+
+fun <R> RetryPolicyDsl<R>.onSuccess(handler: ExecutionCompletedEventHandler<R>): RetryPolicyDsl<R> =
+    apply {
+        onSuccessHandlers.add(handler)
+    }

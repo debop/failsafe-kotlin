@@ -25,13 +25,13 @@ class RetryPolicyDslTest {
             delay = Duration.ofSeconds(5)
             maxDuration = Duration.ofSeconds(10)
 
-            onAbort = { evt ->
-                logger.debug { "on Abort ... evt=$evt" }
-            }
+            onAbort = { logger.debug { "onAbort ... evt=$it" } }
 
-            onAbort { evt ->
-                logger.debug { "on Abort ... evt=$evt" }
-            }
+            // add
+            onAbort { logger.debug { "onAbort ... evt=$it" } }
+
+            // add
+            onRetry { logger.debug { "onRetry ... evt=$it" } }
         }
 
         retry.shouldNotBeNull()
