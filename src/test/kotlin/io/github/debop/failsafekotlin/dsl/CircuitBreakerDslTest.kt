@@ -23,10 +23,18 @@ class CircuitBreakerDslTest {
             delay = Duration.ofSeconds(30)
             failureThreshold = 10
             successThreshold = 3
+
+            onClose { logger.debug { "Circuit is closed" } }
+            onOpen { logger.debug { "Circuit is open" } }
+            onHalfOpen { logger.debug { "Circuit is halfopen" } }
+
+            onSuccess { evt -> logger.debug { "onSuccess evt=$evt" } }
+            onFailure { evt -> logger.debug { "onSuccess evt=$evt" } }
         }
 
         breaker.delay shouldEqual Duration.ofSeconds(30)
         breaker.failureThreshold shouldEqual Ratio(10, 10)
         breaker.successThreshold shouldEqual Ratio(3, 3)
+
     }
 }

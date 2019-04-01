@@ -1,12 +1,12 @@
 package io.github.debop.failsafekotlin.dsl
 
+import io.github.debop.failsafekotlin.event.ExecutionCompletedEventHandler
 import net.jodah.failsafe.CircuitBreaker
 import net.jodah.failsafe.Failsafe
 import net.jodah.failsafe.FailsafeExecutor
 import net.jodah.failsafe.Fallback
 import net.jodah.failsafe.Policy
 import net.jodah.failsafe.RetryPolicy
-import net.jodah.failsafe.event.ExecutionCompletedEvent
 
 /**
  * FailsafeDsl
@@ -21,9 +21,25 @@ class FailsafeDsl<R> : AbstractPolicyDsl<R>() {
     var retry: RetryPolicy<R>? = null
     var circuitBreaker: CircuitBreaker<R>? = null
 
-    var onComplete: ((ExecutionCompletedEvent<R>) -> Unit)? = null
-    var onSuccess: ((ExecutionCompletedEvent<R>) -> Unit)? = null
-    var onFailure: ((ExecutionCompletedEvent<R>) -> Unit)? = null
+    private val onCompleteHandlers = mutableListOf<ExecutionCompletedEventHandler<R>>()
+    private val onSuccessHandlers = mutableListOf<ExecutionCompletedEventHandler<R>>()
+    private val onFailureHandlers = mutableListOf<ExecutionCompletedEventHandler<R>>()
+
+
+    fun onComplete(handler: ExecutionCompletedEventHandler<R>): FailsafeDsl<R> =
+        apply {
+            onCompleteHandlers.add(handler)
+        }
+
+    fun onSuccess(handler: ExecutionCompletedEventHandler<R>): FailsafeDsl<R> =
+        apply {
+            onSuccessHandlers.add(handler)
+        }
+
+    fun onFailure(handler: ExecutionCompletedEventHandler<R>): FailsafeDsl<R> =
+        apply {
+            onFailureHandlers.add(handler)
+        }
 
     internal fun build(): FailsafeExecutor<R> {
 
@@ -35,9 +51,9 @@ class FailsafeDsl<R> : AbstractPolicyDsl<R>() {
 
         val failsafe = Failsafe.with(*policies.toTypedArray())
 
-        onComplete?.let { failsafe.onComplete(it) }
-        onSuccess?.let { failsafe.onSuccess(it) }
-        onFailure?.let { failsafe.onFailure(it) }
+        onCompleteHandlers.forEach { failsafe.onComplete(it) }
+        onSuccessHandlers.forEach { failsafe.onSuccess(it) }
+        onFailureHandlers.forEach { failsafe.onFailure(it) }
 
         return failsafe
     }
@@ -50,3 +66,9 @@ fun <R> failsafe(setup: FailsafeDsl<R>.() -> Unit): FailsafeExecutor<R> {
 
     return dsl.build()
 }
+
+
+
+
+
+

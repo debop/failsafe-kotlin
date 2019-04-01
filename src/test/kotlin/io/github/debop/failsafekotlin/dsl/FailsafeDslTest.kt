@@ -31,15 +31,15 @@ class FailsafeDslTest {
                 successThreshold = 5
             }
 
-            onComplete = { evt ->
+            onComplete { evt ->
                 logger.debug { "on completed. evt=$evt" }
             }
 
-            onSuccess = { evt ->
+            onSuccess { evt ->
                 logger.debug { "on Success. evt=$evt" }
             }
 
-            onFailure = { evt ->
+            onFailure { evt ->
                 logger.error(evt.failure) { "on Failure. evt=$evt" }
             }
         }
