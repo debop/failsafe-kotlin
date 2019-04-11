@@ -15,10 +15,10 @@
 
 package io.github.debop.failsafekotlin
 
+import io.github.debop.failsafekotlin.event.ExecutionAttemptedEventHandler
+import io.github.debop.failsafekotlin.event.ExecutionCompletedEventHandler
 import net.jodah.failsafe.ExecutionContext
 import net.jodah.failsafe.RetryPolicy
-import net.jodah.failsafe.event.ExecutionAttemptedEvent
-import net.jodah.failsafe.event.ExecutionCompletedEvent
 import net.jodah.failsafe.function.CheckedConsumer
 import java.time.Duration
 import java.util.function.BiPredicate
@@ -33,6 +33,11 @@ fun <R> RetryPolicy<R>.isAbortable(result: Result<R>): Boolean =
 @SinceKotlin("1.3")
 fun <R> RetryPolicy<R>.canApplyDelayFn(result: Result<R>): Boolean =
     canApplyDelayFn(result.getOrNull(), result.exceptionOrNull())
+
+inline fun <R, reified E : Throwable> RetryPolicy<R>.withDelayOn(crossinline delayFn: (R, E, ExecutionContext) -> Duration): RetryPolicy<R> =
+    withDelayOn(E::class) { result, error, ctx ->
+        delayFn.invoke(result, error, ctx)
+    }
 
 fun <R, F : Throwable> RetryPolicy<R>.withDelayOn(failureKlass: KClass<F>,
                                                   delayFn: (R, F, ExecutionContext) -> Duration): RetryPolicy<R> =
@@ -51,7 +56,7 @@ fun <R> RetryPolicy<R>.abortOn(klasses: Iterable<KClass<out Throwable>>): RetryP
 fun <R> RetryPolicy<R>.abortOn(failurePredicate: (Throwable) -> Boolean): RetryPolicy<R> =
     abortOn(Predicate(failurePredicate))
 
-fun <R> RetryPolicy<R>.handle(failure: KClass<out Exception>): RetryPolicy<R> = handle(failure.java)
+fun <R> RetryPolicy<R>.handle(failure: KClass<out Throwable>): RetryPolicy<R> = handle(failure.java)
 
 fun <R> RetryPolicy<R>.handle(vararg failures: KClass<out Exception>): RetryPolicy<R> =
     handle(failures.map { it.java })
@@ -68,20 +73,20 @@ fun <R> RetryPolicy<R>.handleIf(resultPredicate: (R, Throwable) -> Boolean): Ret
 fun <R> RetryPolicy<R>.handleResultIf(resultPredicate: (R) -> Boolean): RetryPolicy<R> =
     handleResultIf(Predicate(resultPredicate))
 
-fun <R> RetryPolicy<R>.onAbort(listener: (ExecutionCompletedEvent<R>) -> Unit): RetryPolicy<R> =
+fun <R> RetryPolicy<R>.onAbort(listener: ExecutionCompletedEventHandler<R>): RetryPolicy<R> =
     this.onAbort(CheckedConsumer(listener))
 
-fun <R> RetryPolicy<R>.onFailedAttempt(listener: (ExecutionAttemptedEvent<R>) -> Unit): RetryPolicy<R> =
+fun <R> RetryPolicy<R>.onFailedAttempt(listener: ExecutionAttemptedEventHandler<R>): RetryPolicy<R> =
     this.onFailedAttempt(CheckedConsumer(listener))
 
-fun <R> RetryPolicy<R>.onRetriesExceeded(listener: (ExecutionCompletedEvent<R>) -> Unit): RetryPolicy<R> =
+fun <R> RetryPolicy<R>.onRetriesExceeded(listener: ExecutionCompletedEventHandler<R>): RetryPolicy<R> =
     this.onRetriesExceeded(CheckedConsumer(listener))
 
-fun <R> RetryPolicy<R>.onRetry(listener: (ExecutionAttemptedEvent<R>) -> Unit): RetryPolicy<R> =
+fun <R> RetryPolicy<R>.onRetry(listener: ExecutionAttemptedEventHandler<R>): RetryPolicy<R> =
     this.onRetry(CheckedConsumer(listener))
 
-fun <R> RetryPolicy<R>.onFailure(listener: (ExecutionCompletedEvent<R>) -> Unit): RetryPolicy<R> =
+fun <R> RetryPolicy<R>.onFailure(listener: ExecutionCompletedEventHandler<R>): RetryPolicy<R> =
     this.onFailure(CheckedConsumer(listener))
 
-fun <R> RetryPolicy<R>.onSuccess(listener: (ExecutionCompletedEvent<R>) -> Unit): RetryPolicy<R> =
+fun <R> RetryPolicy<R>.onSuccess(listener: ExecutionCompletedEventHandler<R>): RetryPolicy<R> =
     this.onSuccess(CheckedConsumer(listener))

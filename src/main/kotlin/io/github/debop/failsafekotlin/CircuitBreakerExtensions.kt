@@ -19,12 +19,6 @@ import net.jodah.failsafe.CircuitBreaker
 import net.jodah.failsafe.function.CheckedRunnable
 import kotlin.reflect.KClass
 
-/**
- * CircuitBreakerExtensions
- * @author debop
- * @since 2019-03-20
- */
-
 fun <R> CircuitBreaker<R>.get(body: () -> Unit) {
     if (allowsExecution()) {
         try {
