@@ -1,3 +1,18 @@
+/*
+ * Copyright (c) 2019. Sunghyouk Bae <sunghyouk.bae@gmail.com>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.github.debop.failsafekotlin.dsl
 
 import io.github.debop.failsafekotlin.event.ExecutionCompletedEventHandler
@@ -5,8 +20,19 @@ import net.jodah.failsafe.CircuitBreaker
 import net.jodah.failsafe.function.CheckedRunnable
 import java.time.Duration
 
+
 /**
- * CircuitBreakerDsl
+ * Create [CircuitBreaker]
+ *
+ * @param R
+ * @param setup
+ * @return
+ */
+fun <R> circuitBreaker(setup: CircuitBreakerDsl<R>.() -> Unit): CircuitBreaker<R> =
+    CircuitBreakerDsl<R>().also { setup(it) }.build()
+
+/**
+ * CircuitBreaker DSL
  *
  * @author debop
  * @since 19. 3. 29
@@ -77,14 +103,5 @@ class CircuitBreakerDsl<R> : AbstractPolicyDsl<R>() {
 
     }
 }
-
-fun <R> circuitBreaker(setup: CircuitBreakerDsl<R>.() -> Unit): CircuitBreaker<R> {
-
-    val dsl = CircuitBreakerDsl<R>()
-    setup.invoke(dsl)
-
-    return dsl.build()
-}
-
 
 

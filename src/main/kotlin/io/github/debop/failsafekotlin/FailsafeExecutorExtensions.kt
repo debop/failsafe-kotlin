@@ -15,7 +15,8 @@
 
 package io.github.debop.failsafekotlin
 
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.suspendCancellableCoroutine
 import net.jodah.failsafe.ExecutionContext
 import net.jodah.failsafe.FailsafeExecutor
 import net.jodah.failsafe.function.CheckedRunnable
@@ -23,6 +24,8 @@ import net.jodah.failsafe.function.CheckedSupplier
 import net.jodah.failsafe.function.ContextualRunnable
 import net.jodah.failsafe.function.ContextualSupplier
 import java.util.concurrent.CompletableFuture
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 
 fun <R, T : R> FailsafeExecutor<R>.getChecked(supplier: () -> T): T =
@@ -49,10 +52,17 @@ fun <R> FailsafeExecutor<R>.runAsync(runnable: () -> Unit): CompletableFuture<Vo
 fun <R> FailsafeExecutor<R>.runAsync(runnable: (ExecutionContext) -> Unit): CompletableFuture<Void> =
     runAsync(ContextualRunnable(runnable))
 
-fun <R> FailsafeExecutor<R>.runSuspend(suspendable: suspend () -> Unit): CompletableFuture<Void> {
-    return runAsync(CheckedRunnable {
-        runBlocking {
+@ExperimentalCoroutinesApi
+suspend fun <R> FailsafeExecutor<R>.execAsync(suspendable: () -> Unit) {
+    suspendCancellableCoroutine<Void> { cont ->
+        runAsync { context ->
             suspendable.invoke()
+        }.whenComplete { result, error ->
+            if (error != null) {
+                cont.resumeWithException(error)
+            } else {
+                cont.resume(result)
+            }
         }
-    })
+    }
 }
