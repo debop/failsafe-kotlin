@@ -15,8 +15,8 @@
 
 package io.github.debop.failsafekotlin
 
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.*
+import kotlinx.coroutines.future.asCompletableFuture
 import net.jodah.failsafe.ExecutionContext
 import net.jodah.failsafe.FailsafeExecutor
 import net.jodah.failsafe.function.CheckedRunnable
@@ -29,34 +29,36 @@ import kotlin.coroutines.resumeWithException
 
 
 fun <R, T : R> FailsafeExecutor<R>.getChecked(supplier: () -> T): T =
-    get(CheckedSupplier(supplier))
+        get(CheckedSupplier(supplier))
 
 fun <R, T : R> FailsafeExecutor<R>.get(supplier: (ExecutionContext) -> T): T =
-    get(ContextualSupplier(supplier))
+        get(ContextualSupplier(supplier))
 
 fun <R, T : R> FailsafeExecutor<R>.getAsync(supplier: () -> T): CompletableFuture<T> =
-    getAsync(CheckedSupplier(supplier))
+        getAsync(CheckedSupplier(supplier))
 
 fun <R, F : R> FailsafeExecutor<R>.getStageAsync(supplier: () -> CompletableFuture<R>): CompletableFuture<R> =
-    getStageAsync(CheckedSupplier(supplier))
+        getStageAsync(CheckedSupplier(supplier))
 
 fun <R> FailsafeExecutor<R>.runChecked(runnable: () -> Unit) =
-    run(CheckedRunnable(runnable))
+        run(CheckedRunnable(runnable))
 
 fun <R> FailsafeExecutor<R>.run(runnable: (ExecutionContext) -> Unit): Unit =
-    run(ContextualRunnable(runnable))
+        run(ContextualRunnable(runnable))
 
 fun <R> FailsafeExecutor<R>.runAsync(runnable: () -> Unit): CompletableFuture<Void> =
-    runAsync(CheckedRunnable(runnable))
+        runAsync(CheckedRunnable(runnable))
 
 fun <R> FailsafeExecutor<R>.runAsync(runnable: (ExecutionContext) -> Unit): CompletableFuture<Void> =
-    runAsync(ContextualRunnable(runnable))
+        runAsync(ContextualRunnable(runnable))
 
 @ExperimentalCoroutinesApi
-suspend fun <R> FailsafeExecutor<R>.execAsync(suspendable: () -> Unit) {
-    suspendCancellableCoroutine<Void> { cont ->
-        runAsync { context ->
-            suspendable.invoke()
+suspend fun <R> FailsafeExecutor<R>.execAsync(suspendable: suspend () -> R): R {
+    return suspendCancellableCoroutine<R> { cont ->
+        val future = this.getStageAsync<R> { _ ->
+            CoroutineScope(Dispatchers.Default).async {
+                suspendable.invoke()
+            }.asCompletableFuture<R>()
         }.whenComplete { result, error ->
             if (error != null) {
                 cont.resumeWithException(error)
